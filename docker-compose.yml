@@ -1,0 +1,63 @@
+version: '3'
+
+networks:
+    nginx-php74-mysql-node:
+
+services:
+
+    # nginx
+    nginx-service:
+        image: nginx:stable-alpine
+        container_name: nginx-container
+        ports:
+            - "8080:80"
+        volumes:
+            - ./app:/var/www/project
+            - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+        depends_on:
+            - php74-service
+            - mysql-service
+        networks:
+            - nginx-php74-mysql-node
+
+    # php
+    php74-service:
+        build:
+            context: .
+            dockerfile: ./php/Dockerfile
+        container_name: php74-container
+        ports:
+            - "9000:9000"
+        volumes:
+            - ./app:/var/www/project
+        networks:
+            - nginx-php74-mysql-node
+
+    # mysql
+    mysql-service:
+        image: mysql
+        container_name: mysql-container
+        ports:
+            - "3306:3306"
+        volumes:
+            - ./mysql:/var/lib/mysql
+        command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+        restart: always # always restart unless stopped manually
+        environment:
+            MYSQL_ROOT_PASSWORD: root
+            MYSQL_ROOT_PASSWORD: example
+        networks:
+            - nginx-php74-mysql-node
+
+    # node
+    node-service:
+        build:
+            context: .
+            dockerfile: ./node/Dockerfile
+        image: node:latest
+        container_name: node-container
+        volumes:
+            - ./app:/var/www/project
+        working_dir: /var/www/project
+        networks:
+            - nginx-php74-mysql-node
